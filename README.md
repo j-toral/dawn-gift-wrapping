@@ -4,7 +4,7 @@
 
 ## Requirements
  - Shopify Store
- - Virtual Product called with a title and sku that can be put into the necessary theme files
+ - Virtual Product with a title and sku that can be put into the necessary theme files
  - Basic knowledge of Theme editing
  - Variant ID of the virtual product
 
