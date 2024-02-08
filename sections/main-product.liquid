@@ -1,3 +1,9 @@
+{% assign giftWrapTitle = "Gift Wrapping" %}
+
+{% if product.title == giftWrapTitle %}
+  <script>window.location.href="{{ shop.url }}";</script>
+{% endif %}
+
 <section
   id="MainProduct-{{ section.id }}"
   class="section-{{ section.id }}-padding gradient color-{{ section.settings.color_scheme }}"
@@ -17,6 +23,8 @@
   {%- if product.quantity_price_breaks_configured? -%}
     {{ 'component-volume-pricing.css' | asset_url | stylesheet_tag }}
   {%- endif -%}
+
+  {{ 'gift-wrap.css' | asset_url | stylesheet_tag }}
 
   {%- style -%}
     .section-{{ section.id }}-padding {
@@ -66,6 +74,11 @@
   {%- endif -%}
 
   {% assign variant_images = product.images | where: 'attached_to_variant?', true | map: 'src' %}
+
+  {% comment %} Variable to hold the value that shows for Gift Wrap line item property {% endcomment %}
+  {% assign giftWrapCheckboxValue = "Selected" %}
+  {% assign giftMessageCheckboxValue = "Free" %}
+
   <div class="page-width">
     <div class="product product--{{ section.settings.media_size }} product--{{ section.settings.media_position }} product--{{ section.settings.gallery_layout }} product--mobile-{{ section.settings.mobile_thumbnails }} grid grid--1-col {% if product.media.size > 0 %}grid--2-col-tablet{% else %}product--no-media{% endif %}">
     <div class="grid__item product__media-wrapper{% if section.settings.media_position == 'right' %} medium-hide large-up-hide{% endif %}">
@@ -84,6 +97,20 @@
           {%- case block.type -%}
             {%- when '@app' -%}
               {% render block %}
+            {% comment %} Adding the gift wrap template to the PDP consisting of a checkbox and a text area {% endcomment %}
+            {%- when 'giftwrap' -%}
+
+              {% assign price = product.selected_or_first_available_variant.price | divided_by: 100 %}
+
+              {% unless block.settings.free_giftwrap %}
+
+                {% render 'gift-wrap', type: 'wrapping', product_form_id: product_form_id, giftWrapCheckboxValue: giftWrapCheckboxValue %}
+
+              {% else %}
+
+                {% render 'gift-wrap', type: 'message', product_form_id: product_form_id, giftWrapCheckboxValue: giftMessageCheckboxValue %}
+
+              {% endunless %}
             {%- when 'text' -%}
               <p
                 class="product__text inline-richtext{% if block.settings.text_style == 'uppercase' %} caption-with-letter-spacing{% elsif block.settings.text_style == 'subtitle' %} subtitle{% endif %}"
@@ -681,6 +708,19 @@
   "blocks": [
     {
       "type": "@app"
+    },
+    {
+      "type": "giftwrap",
+      "name": "Gift Wrapping",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "free_giftwrap",
+          "label": "Free Gift Wrapping",
+          "default": false
+        }
+      ]
     },
     {
       "type": "text",

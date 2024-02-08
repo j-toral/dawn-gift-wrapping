@@ -5,6 +5,8 @@
 {{ 'component-discounts.css' | asset_url | stylesheet_tag }}
 {{ 'quantity-popover.css' | asset_url | stylesheet_tag }}
 
+{{ 'gift-wrap.css' | asset_url | stylesheet_tag }}
+
 {%- style -%}
   .section-{{ section.id }}-padding {
     padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
@@ -19,11 +21,16 @@
   }
 {%- endstyle -%}
 
-{%- unless settings.cart_type == 'drawer' -%}
-  <script src="{{ 'cart.js' | asset_url }}" defer="defer"></script>
-{%- endunless -%}
-
 <script src="{{ 'quantity-popover.js' | asset_url }}" defer="defer"></script>
+
+{% comment %} Initialising the gift wrap variables {% endcomment %}
+
+{%- liquid
+  assign giftWrapSku = "[ENTER GIFT WRAP SKU HERE]"
+  assign amountOfGiftWrap = 0
+  assign amountOfGiftWrapNeeded = 0
+  assign giftMessage = ""
+  -%}
 
 <cart-items class="gradient color-{{ section.settings.color_scheme }} isolate{% if cart == empty %} is-empty{% else %} section-{{ section.id }}-padding{% endif %}">
   <div class="page-width">
@@ -79,11 +86,24 @@
 
               <tbody>
                 {%- for item in cart.items -%}
+
+                  {% comment %} Resetting and initialising booleans {% endcomment %}
+                  {% comment %} Setting the quantity of gift wrap currently in the cart into the variable {% endcomment %}
+                  {%- liquid
+                    assign hasGiftWrap = false
+                    assign needsGiftWrap = true
+
+                    if item.sku == giftWrapSku
+                      assign amountOfGiftWrap = item.quantity
+                    endif
+
+                    -%}
+
                   <tr class="cart-item" id="CartItem-{{ item.index | plus: 1 }}">
                     <td class="cart-item__media">
                       {% if item.image %}
                         {% comment %} Leave empty space due to a:empty CSS display: none rule {% endcomment %}
-                        <a href="{{ item.url }}" class="cart-item__link" aria-hidden="true" tabindex="-1"> </a>
+                        {% unless item.sku == giftWrapSku %}<a href="{{ item.url }}" class="cart-item__link" aria-hidden="true" tabindex="-1"> </a>{% endunless %}
                         <div class="cart-item__image-container gradient global-media-settings">
                           <img
                             src="{{ item.image | image_url: width: 300 }}"
@@ -102,7 +122,11 @@
                         <p class="caption-with-letter-spacing">{{ item.product.vendor }}</p>
                       {%- endif -%}
 
-                      <a href="{{ item.url }}" class="cart-item__name h4 break">{{ item.product.title | escape }}</a>
+                      {% unless item.sku == giftWrapSku %}
+                        <a href="{{ item.url }}" class="cart-item__name tw-text-semibold tw-uppercase break">{{ item.product.title | escape }}</a>
+                      {% else %}
+                        <p class="tw-text-semibold tw-uppercase break">{{ item.product.title | escape }}</p>
+                      {% endunless %}
 
                       {%- if item.original_price != item.final_price -%}
                         <div class="cart-item__discounted-prices">
@@ -142,6 +166,21 @@
                           {%- for property in item.properties -%}
                             {%- assign property_first_char = property.first | slice: 0 -%}
                             {%- if property.last != blank and property_first_char != '_' -%}
+
+                              {% comment %} Setting the boolean to true as well as calculating the amount of gift wrap needed by adding the quantity of the item that is gift wrapped {% endcomment %}
+                              {% comment %} Setting the gift message to the new message {% endcomment %}
+                              {%- liquid
+
+                                if property.first == "Gift Wrap" and property.last != "Free"
+                                  assign hasGiftWrap = true
+                                endif
+
+                                if property.first == "Gift Message"
+                                  assign giftMessage = property.last
+                                endif
+
+                                -%}
+
                               <div class="product-option">
                                 <dt>{{ property.first }}:</dt>
                                 <dd>
@@ -155,8 +194,80 @@
                                 </dd>
                               </div>
                             {%- endif -%}
+
+                            {% comment %} Adding the edit only if hasGiftWrap is true {% endcomment %}
+                            {% if hasGiftWrap and property.first == "Gift Message" %}
+                              {% comment %} Calling the web component and passing the line index and quantity {% endcomment %}
+                              <edit-gift-wrap data-index="{{ item.index | plus: 1 }}" data-quantity="{{ item.quantity }}">
+                                <div class="product-option tw-my-1">
+                                  {% comment %} Getting the text from the section settings {% endcomment %}
+                                  <a href="#" class="tw-underline tw-underline-offset-4" name="editbutton" id="editGiftMessage-{{ item.index | plus: 1 }}">{{ section.settings.edit_gift_message }}</a>
+                                </div>
+                                <div class="tw-hidden tw-mb-1" id="giftMessageDiv-{{ item.index | plus: 1 }}">
+                                  <div class="tw-flex tw-mt-2 tw-items-start tw-space-x-4">
+                                    <div class="tw-min-w-0 tw-flex-1 tw-relative tw-z-0">
+                                      <div
+                                        class="tw-overflow-hidden tw-rounded-lg tw-shadow-sm tw-ring-1 tw-ring-inset tw-ring-gray-300 focus-within:tw-ring-2 focus-within:tw-ring-joedark-600"
+                                      >
+                                        <label for="comment" class="tw-sr-only">{{ section.settings.gift_message_edit_label }}</label>
+                                        {% comment %} Getting the message if there is already a message to edit {% endcomment %}
+                                        <textarea
+                                          rows="3"
+                                          name="giftmessage"
+                                          maxlength="120"
+                                          id="giftMessage-{{ item.index | plus: 1 }}"
+                                          class="tw-block tw-w-full tw-resize-none tw-border-0 tw-bg-transparent tw-py-1.5 tw-text-joedark-950 placeholder:tw-text-joedark-950/75 focus:tw-ring-0 sm:tw-text-sm sm:tw-leading-6"
+                                          placeholder="{{ section.settings.gift_message_edit_placeholder }}"
+                                        >{{ giftMessage }}</textarea>
+                                
+                                        <div class="tw-py-2" aria-hidden="true">
+                                          <div class="tw-py-px">
+                                            <div class="tw-h-9 tw-flex tw-items-center tw-py-2 tw-pl-3 tw-pr-2">
+                                              <span class="textareaCurrentCount">0</span>
+                                              <span class="textareaMaxAmount">&nbsp;/&nbsp;120</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                
+                                      <div
+                                        id="giftMessageContainer"
+                                        class="tw-hidden tw-absolute tw-z-0 tw-inset-x-0 tw-bottom-0 tw-justify-end tw-py-2 tw-pl-3 tw-pr-2"
+                                      >
+                                        <div class="tw-flex-shrink-0">
+                                          {% comment %} Getting the text from the section settings {% endcomment %}
+                                          <button
+                                            id="messageButton-{{ item.index | plus: 1 }}"
+                                            name="giftbutton"
+                                            type="submit"
+                                            class="tw-inline-flex tw-items-center tw-rounded-md tw-bg-joedark-950/75 tw-px-3 tw-py-2 tw-text-sm tw-font-semibold tw-text-white tw-shadow-sm hover:tw-bg-joedark-950 focus-visible:tw-outline focus-visible:tw-outline-2 focus-visible:tw-outline-offset-2 focus-visible:tw-joedark-950"
+                                          >
+                                            {{ section.settings.edit_message_button }}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </edit-gift-wrap>
+                            {% endif %}
+
+                            {% assign giftMessage = '' %}
+
                           {%- endfor -%}
                         </dl>
+
+                        {%- liquid
+
+                          if hasGiftWrap == false
+                            assign needsGiftWrap = false
+                          endif
+  
+                          if needsGiftWrap
+                            assign amountOfGiftWrapNeeded = amountOfGiftWrapNeeded | plus: item.quantity
+                          endif
+
+                        -%}
 
                         <p class="product-option">{{ item.selling_plan_allocation.selling_plan.name }}</p>
                       {%- endif -%}
@@ -241,7 +352,8 @@
                               </button>
                             {%- endif -%}
                             <quantity-input class="quantity cart-quantity">
-                              <button class="quantity__button no-js-hidden" name="minus" type="button">
+                              {% comment %} Disabling the button if the current item is gift wrapped {% endcomment %}
+                              <button class="quantity__button no-js-hidden{% if item.sku == giftWrapSku %} gift-wrap__disabled{% endif %}" name="minus" type="button"{% if item.sku == giftWrapSku %} disabled{% endif %}>
                                 <span class="visually-hidden">
                                   {{- 'products.product.quantity.decrease' | t: product: item.product.title | escape -}}
                                 </span>
@@ -264,8 +376,14 @@
                                 aria-label="{{ 'products.product.quantity.input_label' | t: product: item.product.title | escape }}"
                                 id="Quantity-{{ item.index | plus: 1 }}"
                                 data-index="{{ item.index | plus: 1 }}"
+                                {% if needsGiftWrap %}
+                                  data-gift-wrap="true"
+                                  data-current-quantity="{{ item.quantity }}"
+                                {% endif %}
+                                {% if item.sku == giftWrapSku %} disabled{% endif %}
                               >
-                              <button class="quantity__button no-js-hidden" name="plus" type="button">
+                              {% comment %} Disabling the button if the current item is gift wrapped {% endcomment %}
+                              <button class="quantity__button no-js-hidden{% if item.sku == giftWrapSku %} gift-wrap__disabled{% endif %}" name="plus" type="button"{% if item.sku == giftWrapSku %} disabled{% endif %}>
                                 <span class="visually-hidden">
                                   {{- 'products.product.quantity.increase' | t: product: item.product.title | escape -}}
                                 </span>
@@ -276,10 +394,11 @@
                           <cart-remove-button
                             id="Remove-{{ item.index | plus: 1 }}"
                             data-index="{{ item.index | plus: 1 }}"
+                            class="{% if item.sku == giftWrapSku %}gift-wrap__disabled{% endif %}"
                           >
                             <a
                               href="{{ item.url_to_remove }}"
-                              class="button button--tertiary"
+                              class="button button--tertiary{% if item.sku == giftWrapSku %} gift-wrap__disabled{% endif %}"
                               aria-label="{{ 'sections.cart.remove_title' | t: title: item.title }}"
                             >
                               {% render 'icon-remove' %}
@@ -449,6 +568,11 @@
     </form>
   </div>
 </cart-items>
+
+{% comment %} Moving the cart.js call to the bottom of the template to allow the liquid variable calculations to finish as well as sending in the values to the js file {% endcomment %}
+{%- unless settings.cart_type == 'drawer' -%}
+  <script src="{{ 'cart.js' | asset_url }}" defer="defer" giftWrapAmountNeeded="{{ amountOfGiftWrapNeeded }}" giftWrapAmount="{{ amountOfGiftWrap }}"></script>
+{%- endunless -%}
 
 {% schema %}
 {

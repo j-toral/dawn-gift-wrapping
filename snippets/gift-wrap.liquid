@@ -1,0 +1,31 @@
+{% comment %} Gift Wrap Functionality Trial Code {% endcomment %}
+
+{% assign giftWrapPrice = all_products.gift-wrapping.price | money %}
+
+<div class="tw-max-w-md tw-mx-0">
+
+    {% if type == "wrapping" %}
+        <div id="giftmessageselect" class="tw-py-2 tw-flex tw-items-center tw-leading-none">
+            <input class="tw-text-black focus:tw-ring-black tw-bg-transparent" type="checkbox" name="properties[Gift Wrap]" id="giftwrap" onclick="giftToggle()" form="{{ product_form_id }}" value="{{ giftWrapCheckboxValue }}">
+            <label id="giftmessageselect-label" for="giftwrap">Add Gift Wrapping ({{ giftWrapPrice }})</label>
+        </div>
+    {% else %}
+        <input class="tw-text-black focus:tw-ring-black tw-bg-transparent" type="hidden" name="properties[Gift Wrap]" id="giftwrap" form="{{ product_form_id }}" value="{{ giftWrapCheckboxValue }}" checked="true">
+    {% endif %}
+
+    <textarea-count id="giftmessageoption" class="tw-flex-col{% if type == "wrapping" %} tw-hidden{% else %} tw-flex{% endif %}">
+      <label for="giftmessage">Gift Message (Optional)</label>
+      <textarea 
+        name="properties[Gift Message]" 
+        id="giftmessage"
+        maxlength="120"
+        class="focus:tw-ring-black focus:tw-border-black tw-p-2.5 tw-tracking-wider tw-leading-7 tw-outline-0 tw-font-sans tw-bg-transparent tw-resize-none" 
+        form="{{ product_form_id }}"></textarea>
+        <div id="textAreaCount" class="tw-w-full tw-flex tw-justify-end tw-pt-1">
+          <span class="textareaCurrentCount">0</span>
+          <span class="textareaMaxAmount">&nbsp;/&nbsp;120</span>
+        </div>
+    </textarea-count>
+
+</div>  
+{% comment %} END Gift Wrap Functionality Trial Code {% endcomment %}
