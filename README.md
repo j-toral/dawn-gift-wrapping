@@ -1,6 +1,6 @@
 # Dawn 13.0.0 with Gift Wrapping
 
-[Getting Repo](https://github.com/Shopify/dawn)
+[Original Repo](https://github.com/Shopify/dawn)
 
 ## Requirements
  - Shopify Store
